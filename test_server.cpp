@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 
     char recv_buf[20000];
     apprecv(recv_buf,20000,sockfd,clientaddr,clientlen); 
-    for(int i=0;i<20000;i++){
+    for(int i=20000-10;i<20000;i++){
         cout<<recv_buf[i];
     }
 

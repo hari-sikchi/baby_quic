@@ -59,6 +59,7 @@ void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 void recvbuffer_handler(char* packet_recv);
 void* parse_packets(void* arg);
 void* acquire_data(void* arg);
+void clear( std::queue<char> &q );
 void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
 
 

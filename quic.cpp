@@ -68,6 +68,7 @@ void *sendbuffer_handler(void *arg){
 
 
 
+
 void* rate_control(void* arg){
     cout<<"File sending service[Reliable]:"<<endl;
     char buf[1033]; 
@@ -93,17 +94,18 @@ void* rate_control(void* arg){
     float additive_increase_ctr=0;    
     sem_wait(&mtx2);
     acknowledgement_changed=0;
+    int close_connection=0;
     sem_post(&mtx2);
     while(1){
     	alarm_fired=0;
-    	if(len==0&&sender_buffer.empty())
+    	if(len==0&&sender_buffer.empty()&&base==nextseqnum-1)
     		break;
 
 
     	cout<<"Window Size: "<<window_size<<endl;
 		
 		cout<<"Base: "<<base<<" | nextseqnum: "<<nextseqnum<<endl;
-
+		cout<<receiver_window<<" | "<<window_size<<endl;
 		window_size=min(receiver_window,window_size);
 
 		// If there is space in the current window, take a packet from sender_buffer and send it.
@@ -133,10 +135,10 @@ void* rate_control(void* arg){
 			// Copy the size of the chunk
 			memcpy(buf+1025 ,size_c, 4 );
 			//counterpy the sequence number of the chunk
-			memcpy(buf+1029,ctr_c  , 4 );
+			memcpy(buf+1029,ctr_c , 4 );
 			// Copy to memory
-			memcpy(&window_mem[nextseqnum-base-1][0],buf , 1033 );
-			cout<<"Send data"<<endl;
+			memcpy(&window_mem[nextseqnum-base-1][0],buf, 1033);
+			cout<<"Send data: "<<ctr<< "| "<<minm<<endl;
 			sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);
 			ctr++;
 			nextseqnum++;
@@ -149,10 +151,9 @@ void* rate_control(void* arg){
     	do
 		    {	
 		    	// If correct acknowledgment is received by the receiver thread
-		    	cout<<"REACHES wait for lock!"<<endl;
+		    	//cout<<"REACHES wait for lock!"<<endl;
 
 		    	sem_wait(&mtx3);
-		    	cout<<"REACHES got lock!"<<endl;
 				if(acknowledgement_received>base){
 					ackn=acknowledgement_received;
 					int j=0;
@@ -179,6 +180,7 @@ void* rate_control(void* arg){
 								additive_increase_ctr=0;
 								additive_increase=0;
 								window_size+=1;
+								window_size=max(window_size,max_window_size);
 							}
 						}
 
@@ -188,6 +190,11 @@ void* rate_control(void* arg){
 						acknowledgement_changed=0;
 						break;
 				
+				}
+				else if(acknowledgement_received<base&&acknowledgement_received==0){
+					close_connection=1;
+					break;	
+
 				}
 				else if(acknowledgement_changed==1){
 
@@ -211,6 +218,8 @@ void* rate_control(void* arg){
 	    	sem_post(&mtx3);
 	    }
 
+	    if(close_connection)
+	    	break;
 		// If timed out then reduce the window size and resend all packets
 		if(flag_timeout){
 			if(ssthresh>=2)
@@ -243,7 +252,13 @@ void* rate_control(void* arg){
 
 void update_window(int ackn,int rwnd){
 	sem_wait(&mtx3);
+	if(acknowledgement_received>0&&ackn==0)
+		acknowledgement_received=0;
+	else{
 	acknowledgement_received=max(ackn,acknowledgement_received);
+	}
+
+
 	sem_post(&mtx3);
 	if(ackn<acknowledgement_received){
 		dup_ack++;
@@ -252,11 +267,13 @@ void update_window(int ackn,int rwnd){
 		if(ssthresh>=2)
 			ssthresh/=2;
 		sem_wait(&mtx4);
-		window_size/=2;
+		if(window_size>=2)
+			window_size/=2;
 		sem_post(&mtx4);
 		dup_ack=0;
 	}
-	receiver_window=rwnd;
+	if(receiver_window>0)
+		receiver_window=rwnd;
 
 }
 
@@ -269,8 +286,8 @@ void recvbuffer_handler(char* packet_recv){
 	sem_wait(&mtx5);
 	cout<<"recv_buffer_handler!"<<endl;
 	if(QUEUE_SIZE-receiver_buffer.size()<1032){
-		cout<<"receiver queue is full!"<<endl;
-
+		cout<<"Receiver queue is full!"<<endl;
+		sem_post(&mtx5);
 		return;
 	}
 	else{
@@ -279,9 +296,13 @@ void recvbuffer_handler(char* packet_recv){
 		char ackn[1033];
 		
 		int is_ackn=1;
-		
-		int rwnd=QUEUE_SIZE-receiver_buffer.size();
-
+		int rwnd;
+		if(!receiver_buffer.empty())
+		 {
+		 	rwnd=QUEUE_SIZE-receiver_buffer.size();
+		}		
+		else
+			rwnd=QUEUE_SIZE;
 
 		for(int i=0;i<1032;i++){
 			receiver_buffer.push(buff[i]);
@@ -313,13 +334,16 @@ void recvbuffer_handler(char* packet_recv){
     	else if(recv_s==exp_ack){
         	//Some bug here
         	int sent;
+        	exp_ack+=1;
+        	ack = htonl(exp_ack-1);
         	sent = sendto(sock, ackn, sizeof(ackn), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
-			cout<<"ACK sent for number: "<<exp_ack<<" Bytes:"<<sent<<endl;
-			exp_ack+=1;
-			ack = htonl(exp_ack);
+			cout<<"ACK sent for number: "<<exp_ack-1<<" Bytes:"<<sent<<endl;
+			//exp_ack+=1;
+			//ack = htonl(exp_ack);
         	}
 	}
 	sem_post(&mtx5);
+	
 }
 
 void* parse_packets(void* arg){
@@ -357,8 +381,11 @@ void* parse_packets(void* arg){
 			sem_post(&mtx1);
 			memcpy(ackn_c,packet_recv+1, 4);
 			ackn=ntohl(ackn);
+			cout<<"ackn:"<<ackn<<endl;
 			memcpy(rwnd_c,packet_recv+5, 4);
-			rwnd=ntohl(rwnd);
+			//cout<<"Rwnd:"<<rwnd<<endl;
+			//rwnd=ntohl(rwnd);
+
 			// Got ackn and rwnd
 			update_window(ackn,rwnd);
 			}
@@ -378,16 +405,16 @@ void* acquire_data(void* arg){
 	int len_rem=recv_len;
 	int ctr=1	;
 	int j=0;
+	int temp=len_rem;
 	while(len_rem){
-		
 		sem_wait(&mtx5);
 		if(receiver_buffer.size()<1032){
 			//do nothing
 		}
 		else{
-			cout<<len_rem<<endl;
 			char buff[1032];
 			for(int i=0;i<1032;i++){
+
 				buff[i]=receiver_buffer.front();
 				receiver_buffer.pop();
 			}
@@ -396,26 +423,35 @@ void* acquire_data(void* arg){
 			char * size_c=(char*)&size;
 			memcpy(size_c,buff+1024,4);
 			memcpy(val_c,buff+1028,4);
+			cout<<len_rem<<endl;
 			
 			if(val==ctr){
-				cout<<val<<" | "<<ctr<<endl;
-				int minm=min(1024,len_rem);
+				cout<<val<<" | "<<size<<endl;
+				int minm=min(1024,size);
 				for(int i=0;i<minm;i++){
 					recv_data[j]=buff[i];
 					j++;
 					len_rem--;
 				}
+
 				ctr++;
 			}
 
 
 		}
-		//cout<<"finish"<<endl;
 		sem_post(&mtx5);
 	}
+		cout<<temp<<endl;
+		cout<<"Acquring finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
 
 	pthread_exit(NULL);
 
+}
+
+void clear( std::queue<char> &q )
+{
+   std::queue<char> empty;
+   std::swap( q, empty );
 }
 
 void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent){
@@ -425,6 +461,7 @@ void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	 sem_init(&mtx3, 0, 1);
 	 sem_init(&mtx4, 0, 1);
 	 sem_init(&mtx5, 0, 1);
+	 clear(sender_buffer);
 
 	sock=sockfd;
 	serverlen=serverlent;
@@ -453,7 +490,8 @@ void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	 sem_init(&mtx4, 0, 1);
 	 sem_init(&mtx5, 0, 1);
 
-
+	 clear(receiver_buffer);
+	 receiver_window=MAX_WINDOW;
 	sock=sockfd;
 	serverlen=serverlent;
 	serveraddr=serveraddrt;

@@ -45,6 +45,13 @@ int main(int argc, char **argv) {
     for(int i=0;i<20000;i++){
     	data[i]='A';
     }
+    data[20000-1]='G';
+    data[20000-2]='F';
+    data[20000-3]='E';
+    data[20000-4]='D';
+    data[20000-5]='C';
+    
+    data[20000-6]='B';
     //memset(data,0,sizeof(data));
     appsend(data,20000,sockfd,serveraddr,sizeof(serveraddr));
 
