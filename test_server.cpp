@@ -59,11 +59,26 @@ int main(int argc, char **argv) {
   clientlen = sizeof(clientaddr);
   while (1) {
 
-    char recv_buf[60000];
-    apprecv(recv_buf,60000,sockfd,clientaddr,clientlen); 
-    for(int i=60000-10;i<60000;i++){
+    char recv_buf[30000];
+    apprecv(recv_buf,30000,sockfd,clientaddr,clientlen); 
+    for(int i=30000-10;i<30000;i++){
         cout<<recv_buf[i];
     }
+	cout<<endl;
+    char data[30000];
+    for(int i=0;i<30000;i++){
+    	data[i]='A';
+    }
+    data[30000-1]='G';
+    data[30000-2]='G';
+    data[30000-3]='G';
+    data[30000-4]='G';
+    data[30000-5]='G';
+    
+    data[30000-6]='B';
+    //memset(data,0,sizeof(data));
+    appsend(data,30000,sockfd,clientaddr,clientlen);
+
 
   }
 

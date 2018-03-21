@@ -101,8 +101,7 @@ void* rate_control(void* arg){
     	if(len==0&&sender_buffer.empty()&&base==nextseqnum-1)
     		break;
 
-
-    	//cout<<"Window Size: "<<window_size<<endl;
+    	//cout<<"Window Size: |"<<window_size<<" |"<<endl;
 		
 		cout<<"Base: "<<base<<" | nextseqnum: "<<nextseqnum<<endl;
 		//cout<<receiver_window<<" | "<<window_size<<endl;
@@ -110,8 +109,7 @@ void* rate_control(void* arg){
 
 		// If there is space in the current window, take a packet from sender_buffer and send it.
   		while(nextseqnum<=base+window_size&&!sender_buffer.empty()){
-			int minm=1024;
-			
+			int minm=1024;			
 			sem_wait(&mtx1);
 			if(minm>sender_buffer.size())
 			    minm=sender_buffer.size();
@@ -129,9 +127,10 @@ void* rate_control(void* arg){
 			char* ctr_c=(char*) &ctr;
 			char *chunk_size_c= (char*)&chunk_size;
 			//Copy the is_ackn region
-			int is_ackn=0;
-			char* is_ackn_c=(char*)&is_ackn;
-			memcpy(buf,is_ackn_c,1);
+			char is_ackn='0';
+			// is_ackn=htonl(is_ackn);
+			// char* is_ackn_c=(char*)&is_ackn;
+			memcpy(buf,&is_ackn,1);
 			// Copy the size of the chunk
 			memcpy(buf+1025 ,size_c, 4 );
 			//counterpy the sequence number of the chunk
@@ -197,7 +196,6 @@ void* rate_control(void* arg){
 
 				}
 				else if(acknowledgement_changed==1){
-
 					acknowledgement_changed=0;
 					flag_timeout=0;
 					break;
@@ -222,8 +220,9 @@ void* rate_control(void* arg){
 	    	break;
 		// If timed out then reduce the window size and resend all packets
 		if(flag_timeout){
-			if(ssthresh>=2)
+			if(ssthresh>=32)
 				ssthresh/=2;
+			
 			sem_wait(&mtx4);
 			window_size=1;
 			sem_post(&mtx4);
@@ -264,7 +263,7 @@ void update_window(int ackn,int rwnd){
 		dup_ack++;
 	}
 	if(dup_ack==3){
-		if(ssthresh>=2)
+		if(ssthresh>=32)
 			ssthresh/=2;
 		sem_wait(&mtx4);
 		if(window_size>=2)
@@ -294,7 +293,7 @@ void recvbuffer_handler(char* packet_recv){
 
 		char ackn[1033];
 		
-		int is_ackn=1;
+		char is_ackn='1';
 		int rwnd;
 		if(!receiver_buffer.empty())
 		 {
@@ -317,10 +316,10 @@ void recvbuffer_handler(char* packet_recv){
 		memcpy(recv_c,buff+1028,4);
         memcpy(size_c,buff+1024,4);
     	ack = htonl(exp_ack-1);
-    	char* ack_c= (char*)&ack;
+    	 char* ack_c= (char*)&ack;
 
 
-    	memcpy(ackn,(char*)&is_ackn,1);
+    	memcpy(ackn,&is_ackn,1);
     	memcpy(ackn+1,ack_c,4);
     	memcpy(ackn+5,(char*)&rwnd,4);
 
@@ -357,18 +356,20 @@ void* parse_packets(void* arg){
 	int t_recv=recvfrom(sock, packet_recv, sizeof(packet_recv), 0,(struct sockaddr *)&serveraddr, (socklen_t*)&serverlen);
 	
 	if(t_recv>=0){
-		int is_ackn;
-		char *is_ackn_c=(char*)&is_ackn;
-		memcpy(is_ackn_c,packet_recv,1);
-		if(ntohl(is_ackn)==0){
+		char is_ackn;
+		// char *is_ackn_c=(char*)&is_ackn;
+		memcpy(&is_ackn,packet_recv,1);
+
+
+		if(is_ackn=='0'){
 			// Is not an acknowlodegment / Is Data
-			//cout<<"Packet is a data packet"<<endl;
+			cout<<"Packet is a data packet"<<endl;
 
 			recvbuffer_handler(packet_recv);
 
 		}
 		else{
-			//cout<<"Packet is an acknowledgement"<<endl;
+			cout<<"Packet is an acknowledgement"<<endl;
 			//Is an acknowledgement
 			// Acknowledgement will be cumulative_sequence_number|receiver_window_size
 			int ackn;
@@ -422,7 +423,7 @@ void* acquire_data(void* arg){
 			char * size_c=(char*)&size;
 			memcpy(size_c,buff+1024,4);
 			memcpy(val_c,buff+1028,4);
-			cout<<len_rem<<endl;
+			cout<<"Length Remaining: "<<len_rem<<endl;
 			
 			if(val==ctr){
 				cout<<val<<" | "<<size<<endl;
@@ -440,8 +441,7 @@ void* acquire_data(void* arg){
 		}
 		sem_post(&mtx5);
 	}
-		cout<<temp<<endl;
-		cout<<"Acquring finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
+		cout<<"-----------Acquring finish-----------"<<endl;
 
 	pthread_exit(NULL);
 
@@ -461,7 +461,9 @@ void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	 sem_init(&mtx4, 0, 1);
 	 sem_init(&mtx5, 0, 1);
 	 clear(sender_buffer);
+	 clear(receiver_buffer);
 
+	 ssthresh=64;
 	sock=sockfd;
 	serverlen=serverlent;
 	serveraddr=serveraddrt;
@@ -488,7 +490,8 @@ void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	 sem_init(&mtx3, 0, 1);
 	 sem_init(&mtx4, 0, 1);
 	 sem_init(&mtx5, 0, 1);
-
+	 ssthresh=64;
+	 clear(sender_buffer);
 	 clear(receiver_buffer);
 	 receiver_window=MAX_WINDOW;
 	sock=sockfd;

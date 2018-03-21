@@ -39,23 +39,30 @@ int main(int argc, char **argv) {
 
  
     
+while (1) {
 
     //string filename="axes.png";
-    char data[60000];
-    for(int i=0;i<60000;i++){
+    char data[30000];
+    for(int i=0;i<30000;i++){
     	data[i]='A';
     }
-    data[60000-1]='G';
-    data[60000-2]='G';
-    data[60000-3]='G';
-    data[60000-4]='G';
-    data[60000-5]='G';
+    data[30000-1]='G';
+    data[30000-2]='G';
+    data[30000-3]='G';
+    data[30000-4]='G';
+    data[30000-5]='G';
     
-    data[60000-6]='B';
+    data[30000-6]='B';
     //memset(data,0,sizeof(data));
-    appsend(data,60000,sockfd,serveraddr,sizeof(serveraddr));
+    appsend(data,30000,sockfd,serveraddr,sizeof(serveraddr));
 
-    //rate_control(sockfd,serveraddr,sizeof(serveraddr));
-	
+
+    char recv_buf[30000];
+    apprecv(recv_buf,30000,sockfd,serveraddr,sizeof(serveraddr)); 
+    for(int i=30000-10;i<30000;i++){
+        cout<<recv_buf[i];
+    }
+    cout<<endl;
+}	
 	return 0;
 }
