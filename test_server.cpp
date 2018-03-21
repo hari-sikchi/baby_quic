@@ -59,9 +59,9 @@ int main(int argc, char **argv) {
   clientlen = sizeof(clientaddr);
   while (1) {
 
-    char recv_buf[20000];
-    apprecv(recv_buf,20000,sockfd,clientaddr,clientlen); 
-    for(int i=20000-10;i<20000;i++){
+    char recv_buf[60000];
+    apprecv(recv_buf,60000,sockfd,clientaddr,clientlen); 
+    for(int i=60000-10;i<60000;i++){
         cout<<recv_buf[i];
     }
 

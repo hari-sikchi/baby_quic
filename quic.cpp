@@ -102,10 +102,10 @@ void* rate_control(void* arg){
     		break;
 
 
-    	cout<<"Window Size: "<<window_size<<endl;
+    	//cout<<"Window Size: "<<window_size<<endl;
 		
 		cout<<"Base: "<<base<<" | nextseqnum: "<<nextseqnum<<endl;
-		cout<<receiver_window<<" | "<<window_size<<endl;
+		//cout<<receiver_window<<" | "<<window_size<<endl;
 		window_size=min(receiver_window,window_size);
 
 		// If there is space in the current window, take a packet from sender_buffer and send it.
@@ -228,11 +228,11 @@ void* rate_control(void* arg){
 			window_size=1;
 			sem_post(&mtx4);
 			/// Fix to close the connection
-			if(resend_ctr==4)
-				{
-					close=1;
-					break;
-				}
+			// if(resend_ctr==4)
+			// 	{
+			// 		close=1;
+			// 		break;
+			// 	}
 			// Resend the entire window
 				cout<<"Resend Window"<<endl;
 			for(int i=0;i<min(window_size,nextseqnum-base-1);i++){
@@ -284,14 +284,13 @@ void recvbuffer_handler(char* packet_recv){
 	memcpy(buff,packet_recv+1,1032);
 	// If queue if full drop packet
 	sem_wait(&mtx5);
-	cout<<"recv_buffer_handler!"<<endl;
 	if(QUEUE_SIZE-receiver_buffer.size()<1032){
 		cout<<"Receiver queue is full!"<<endl;
 		sem_post(&mtx5);
 		return;
 	}
 	else{
-		cout<<"Filling the receiver queue"<<endl;
+		// cout<<"Filling the receiver queue"<<endl;
 
 		char ackn[1033];
 		
@@ -363,13 +362,13 @@ void* parse_packets(void* arg){
 		memcpy(is_ackn_c,packet_recv,1);
 		if(ntohl(is_ackn)==0){
 			// Is not an acknowlodegment / Is Data
-			cout<<"Packet is a data packet"<<endl;
+			//cout<<"Packet is a data packet"<<endl;
 
 			recvbuffer_handler(packet_recv);
 
 		}
 		else{
-			cout<<"Packet is an acknowledgement"<<endl;
+			//cout<<"Packet is an acknowledgement"<<endl;
 			//Is an acknowledgement
 			// Acknowledgement will be cumulative_sequence_number|receiver_window_size
 			int ackn;

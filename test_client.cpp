@@ -41,19 +41,19 @@ int main(int argc, char **argv) {
     
 
     //string filename="axes.png";
-    char data[20000];
-    for(int i=0;i<20000;i++){
+    char data[60000];
+    for(int i=0;i<60000;i++){
     	data[i]='A';
     }
-    data[20000-1]='G';
-    data[20000-2]='F';
-    data[20000-3]='E';
-    data[20000-4]='D';
-    data[20000-5]='C';
+    data[60000-1]='G';
+    data[60000-2]='G';
+    data[60000-3]='G';
+    data[60000-4]='G';
+    data[60000-5]='G';
     
-    data[20000-6]='B';
+    data[60000-6]='B';
     //memset(data,0,sizeof(data));
-    appsend(data,20000,sockfd,serveraddr,sizeof(serveraddr));
+    appsend(data,60000,sockfd,serveraddr,sizeof(serveraddr));
 
     //rate_control(sockfd,serveraddr,sizeof(serveraddr));
 	
