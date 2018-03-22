@@ -55,12 +55,12 @@ void *sendbuffer_handler(void *arg);
 void* rate_control(void* arg);
 void update_window(int ackn,int rwnd);
 void* parse_packets(void* arg);
-void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
+int appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
 void recvbuffer_handler(char* packet_recv);
 void* parse_packets(void* arg);
 void* acquire_data(void* arg);
 void clear( std::queue<char> &q );
-void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
+int apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
 
 
 

@@ -19,7 +19,7 @@ int sock,serverlen;
 struct sockaddr_in serveraddr;
 char  *data;
 int len;
-int exp_ack;
+int exp_ack=1;
 int recv_len;
 char *recv_data;
 sem_t mtx1,mtx2,mtx3,mtx4,mtx5; 
@@ -137,8 +137,9 @@ void* rate_control(void* arg){
 			memcpy(buf+1029,ctr_c , 4 );
 			// Copy to memory
 			memcpy(&window_mem[nextseqnum-base-1][0],buf, 1033);
-			cout<<"Send data: "<<ctr<< "| "<<minm<<endl;
 			sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);
+			cout<<"Send data: "<<ctr<< "| "<<sent<<endl;
+
 			ctr++;
 			nextseqnum++;
 
@@ -234,9 +235,12 @@ void* rate_control(void* arg){
 			// 	}
 			// Resend the entire window
 				cout<<"Resend Window"<<endl;
+				cout<<min(window_size,nextseqnum-base-1)<<endl;
 			for(int i=0;i<min(window_size,nextseqnum-base-1);i++){
-				memcpy(buf,&window_mem[i][0], 1033 );
-				sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);				
+					memcpy(buf,&window_mem[i][0], 1033 );
+					
+					sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);	
+					 cout<<"Sent: "<<sent<<endl;			
 				}
 			resend_ctr++;
 		}
@@ -291,7 +295,7 @@ void recvbuffer_handler(char* packet_recv){
 	else{
 		// cout<<"Filling the receiver queue"<<endl;
 
-		char ackn[1033];
+		char ackn1[1033];
 		
 		char is_ackn='1';
 		int rwnd;
@@ -319,14 +323,18 @@ void recvbuffer_handler(char* packet_recv){
     	 char* ack_c= (char*)&ack;
 
 
-    	memcpy(ackn,&is_ackn,1);
-    	memcpy(ackn+1,ack_c,4);
-    	memcpy(ackn+5,(char*)&rwnd,4);
+    	memcpy(ackn1,&is_ackn,1);
+    	memcpy(ackn1+1,ack_c,4);
+    	memcpy(ackn1+5,(char*)&rwnd,4);
 
 
     	if(recv_s!=exp_ack){
         	int sent;
-        	sent = sendto(sock, ackn, sizeof(ackn), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
+    	// memcpy(ackn,&is_ackn,1);
+    	// memcpy(ackn+1,ack_c,4);
+    	// memcpy(ackn+5,(char*)&rwnd,4);
+
+        	sent = sendto(sock, ackn1, sizeof(ackn1), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
         	cout<<"[Old]ACK sent for number: "<<exp_ack-1<<" Bytes:"<<sent<<endl;
     	}
     	else if(recv_s==exp_ack){
@@ -334,7 +342,12 @@ void recvbuffer_handler(char* packet_recv){
         	int sent;
         	exp_ack+=1;
         	ack = htonl(exp_ack-1);
-        	sent = sendto(sock, ackn, sizeof(ackn), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
+	    	// memcpy(ackn,&is_ackn,1);
+		
+        	//See what is happening here
+	    	 // memcpy(&ackn1[1],ack_c,4);
+
+        	sent = sendto(sock, ackn1, sizeof(ackn1), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
 			cout<<"ACK sent for number: "<<exp_ack-1<<" Bytes:"<<sent<<endl;
 			//exp_ack+=1;
 			//ack = htonl(exp_ack);
@@ -354,14 +367,12 @@ void* parse_packets(void* arg){
 	tv.tv_usec = 0;
 	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 	int t_recv=recvfrom(sock, packet_recv, sizeof(packet_recv), 0,(struct sockaddr *)&serveraddr, (socklen_t*)&serverlen);
-	
 	if(t_recv>=0){
 		char is_ackn;
 		// char *is_ackn_c=(char*)&is_ackn;
 		memcpy(&is_ackn,packet_recv,1);
 
-
-		if(is_ackn=='0'){
+			if(is_ackn=='0'){
 			// Is not an acknowlodegment / Is Data
 			cout<<"Packet is a data packet"<<endl;
 
@@ -392,6 +403,7 @@ void* parse_packets(void* arg){
 
 
 	}
+
 	}	
 
 
@@ -453,7 +465,7 @@ void clear( std::queue<char> &q )
    std::swap( q, empty );
 }
 
-void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent){
+int appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent){
 	// Initialize all the global variables and create a new thread
 	 sem_init(&mtx1, 0, 1);
 	 sem_init(&mtx2, 0, 1);
@@ -468,28 +480,31 @@ void appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	serverlen=serverlent;
 	serveraddr=serveraddrt;
 	data=datat;
+	exp_ack=1;
 	len=lent;
 	receiver_window=MAX_WINDOW;
-
+	acknowledgement_received=0;
 	pthread_t send_buffer,rate_controller,packet_parser;
 	int ret =  pthread_create(&send_buffer, NULL, &sendbuffer_handler, NULL);
 	ret=	 pthread_create(&rate_controller, NULL, &rate_control, NULL);
 	ret= pthread_create(&packet_parser, NULL, &parse_packets, NULL);
+	cout<<"Created Sender Thread:"<<endl;
 
 	pthread_join(send_buffer,NULL);
 	pthread_join(rate_controller,NULL);
 	pthread_cancel(packet_parser);
-	return;
+	return 1;
 
 }
 
-void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent){
+int apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent){
 	// Initialize all the global variables and create a new thread
 	 sem_init(&mtx1, 0, 1);
 	 sem_init(&mtx2, 0, 1);
 	 sem_init(&mtx3, 0, 1);
 	 sem_init(&mtx4, 0, 1);
 	 sem_init(&mtx5, 0, 1);
+	 acknowledgement_received=0;
 	 ssthresh=64;
 	 clear(sender_buffer);
 	 clear(receiver_buffer);
@@ -497,7 +512,7 @@ void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 	sock=sockfd;
 	serverlen=serverlent;
 	serveraddr=serveraddrt;
-	exp_ack=1;
+	 exp_ack=1;
 	recv_len=lent;
 	recv_data=datat;
 
@@ -509,7 +524,7 @@ void apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,in
 
 	pthread_join(recv_buffer,NULL);
 	pthread_cancel(packet_parser);
-	return;
+	return 1;
 
 }
 
