@@ -68,9 +68,9 @@ void send_file(int sock,const char* filename,long size,struct sockaddr_in server
         int rval = fread(buf, 1, minm, file);
 
 
-          for(int i=0;i<minm;i++){
-            cout<<buf[i]<<" ";
-          }   
+          // for(int i=0;i<minm;i++){
+          //   cout<<buf[i]<<" ";
+          // }   
           cout<<endl;
         int sent = appsend( buf, 1024, sock, serveraddr, sizeof(serveraddr));
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     //char* filename_n ="axes.png";
     //cout<<"Enter the filename you want to send:";
     //cin>>temp;
-    char * filn="stop.jpg";
+    char * filn="axes.png";
     // send_info(temp.c_str(),sockfd,serveraddr,sizeof(serveraddr));
     string temp(filn);
     

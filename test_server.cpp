@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
   int sockfd; /* socket file descriptor - an ID to uniquely identify a socket by the application program */
   int portno; /* port to listen on */
   int clientlen; /* byte size of client's address */
-  struct sockaddr_in serveraddr; /* server's addr */
+  struct sockaddr_in serveraddrt; /* server's addr */
   struct sockaddr_in clientaddr; /* client addr */
   struct hostent *hostp; /* client host info */
   char buf[BUFSIZE]; /* message buf */
@@ -41,22 +41,23 @@ int main(int argc, char **argv) {
   /*
    * build the server's Internet address
    */
-  bzero((char *) &serveraddr, sizeof(serveraddr));
-  serveraddr.sin_family = AF_INET;
-  serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  serveraddr.sin_port = htons((unsigned short)portno);
+  bzero((char *) &serveraddrt, sizeof(serveraddrt));
+  serveraddrt.sin_family = AF_INET;
+  serveraddrt.sin_addr.s_addr = htonl(INADDR_ANY);
+  serveraddrt.sin_port = htons((unsigned short)portno);
 
   /* 
    * bind: associate the parent socket with a port 
    */
-  if (bind(sockfd, (struct sockaddr *) &serveraddr, 
-       sizeof(serveraddr)) < 0) 
+  if (bind(sockfd, (struct sockaddr *) &serveraddrt, 
+       sizeof(serveraddrt)) < 0) 
     error("ERROR on binding");
 
   /* 
    * main loop: wait for a datagram, then echo it
    */
   clientlen = sizeof(clientaddr);
+  init_quic();
   while (1) {
 
     char recv_buf[30000];
@@ -76,8 +77,16 @@ int main(int argc, char **argv) {
     data[30000-5]='G';
     
     data[30000-6]='B';
+
+ //  bzero((char *) &clientaddr, sizeof(clientaddr));
+ // clientaddr.sin_family = AF_INET;
+ 
+ //  clientaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+ //  clientaddr.sin_port = htons((unsigned short)2011);
+    printf("Master at ip = : %s , port = %d \n" , inet_ntoa(clientaddr.sin_addr) , ntohs(clientaddr.sin_port));	
+
     //memset(data,0,sizeof(data));
-    appsend(data,30000,sockfd,clientaddr,clientlen);
+    appsend(data,30000,sockfd,clientaddr,sizeof(clientaddr));
 
 
   }

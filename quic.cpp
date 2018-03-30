@@ -239,7 +239,8 @@ void* rate_control(void* arg){
 			for(int i=0;i<min(window_size,nextseqnum-base-1);i++){
 					memcpy(buf,&window_mem[i][0], 1033 );
 					
-					sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);	
+					sent = sendto(sock, buf, 1033, 0, (struct sockaddr *)&serveraddr, (socklen_t)serverlen);
+					printf("Master at ip = : %s , port = %d \n" , inet_ntoa(serveraddr.sin_addr) , ntohs(serveraddr.sin_port));	
 					 cout<<"Sent: "<<sent<<endl;			
 				}
 			resend_ctr++;
@@ -345,7 +346,7 @@ void recvbuffer_handler(char* packet_recv){
 	    	// memcpy(ackn,&is_ackn,1);
 		
         	//See what is happening here
-	    	 // memcpy(&ackn1[1],ack_c,4);
+	    	 memcpy(&ackn1[1],ack_c,4);
 
         	sent = sendto(sock, ackn1, sizeof(ackn1), 0,  (struct sockaddr *) &serveraddr, (socklen_t)serverlen);
 			cout<<"ACK sent for number: "<<exp_ack-1<<" Bytes:"<<sent<<endl;
@@ -477,8 +478,10 @@ int appsend(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int
 
 	 ssthresh=64;
 	sock=sockfd;
+
 	serverlen=serverlent;
 	serveraddr=serveraddrt;
+
 	data=datat;
 	exp_ack=1;
 	len=lent;
@@ -524,6 +527,9 @@ int apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int
 
 	pthread_join(recv_buffer,NULL);
 	pthread_cancel(packet_parser);
+	 // serveraddrt=serveraddr;
+	 // serverlent=sizeof(serveraddr);
+
 	return 1;
 
 }

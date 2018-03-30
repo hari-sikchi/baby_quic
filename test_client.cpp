@@ -5,7 +5,7 @@ int main(int argc, char **argv) {
     int sockfd, portno, n;
     int serverlen;
 
-    struct sockaddr_in serveraddr;
+    struct sockaddr_in serveraddrt;
     struct hostent *server;
     char *hostname;
     char buf[BUFSIZE];
@@ -31,13 +31,13 @@ int main(int argc, char **argv) {
     }
 
     /* build the server's Internet address */
-    bzero((char *) &serveraddr, sizeof(serveraddr));
-    serveraddr.sin_family = AF_INET;
+    bzero((char *) &serveraddrt, sizeof(serveraddrt));
+    serveraddrt.sin_family = AF_INET;
     bcopy((char *)server->h_addr, 
-	  (char *)&serveraddr.sin_addr.s_addr, server->h_length);
-    serveraddr.sin_port = htons(portno);
+	  (char *)&serveraddrt.sin_addr.s_addr, server->h_length);
+    serveraddrt.sin_port = htons(portno);
 
- 
+    init_quic();
     
 while (1) {
 
@@ -54,11 +54,12 @@ while (1) {
     
     data[30000-6]='B';
     //memset(data,0,sizeof(data));
-    appsend(data,30000,sockfd,serveraddr,sizeof(serveraddr));
+    appsend(data,30000,sockfd,serveraddrt,sizeof(serveraddrt));
+
 
 
     char recv_buf[30000];
-    apprecv(recv_buf,30000,sockfd,serveraddr,sizeof(serveraddr)); 
+    apprecv(recv_buf,30000,sockfd,serveraddrt,serverlen); 
     for(int i=30000-10;i<30000;i++){
         cout<<recv_buf[i];
     }

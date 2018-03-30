@@ -23,6 +23,8 @@
 #include <stdlib.h>
 #include <openssl/md5.h>
 #include <bits/stdc++.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <mutex> 
 #include <semaphore.h>
 using namespace std;
