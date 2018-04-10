@@ -31,7 +31,6 @@ using namespace std;
 
 void send_file(int sock,const char* filename,long size,struct sockaddr_in serveraddr,int serverlen) 
 { 
-    cout<<"File sending service[UDP]:"<<endl;
     char buf[1032]; 
     int32_t ack=0;
     string str1;
@@ -56,14 +55,13 @@ void send_file(int sock,const char* filename,long size,struct sockaddr_in server
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
     
     int ctr=1;
-
     while (size > 0)
     { 
-        cout<<"Size = "<<size<<endl;
+        // cout<<"Size = "<<size<<endl;
         int minm=1024;
         if(minm>size)
             minm=size;
-
+       // cout<<"Minm:"
 
         int rval = fread(buf, 1, minm, file);
 
@@ -72,7 +70,7 @@ void send_file(int sock,const char* filename,long size,struct sockaddr_in server
           //   cout<<buf[i]<<" ";
           // }   
           cout<<endl;
-        int sent = appsend( buf, 1024, sock, serveraddr, sizeof(serveraddr));
+        int sent = appsend( buf, minm, sock, serveraddr, sizeof(serveraddr));
 
         char *size_c=(char*) &minm;
         char* ctr_c=(char*) &ctr;
@@ -128,7 +126,7 @@ int main(int argc, char **argv) {
     //char* filename_n ="axes.png";
     //cout<<"Enter the filename you want to send:";
     //cin>>temp;
-    char * filn="axes.png";
+    char * filn="test.ppt";
     // send_info(temp.c_str(),sockfd,serveraddr,sizeof(serveraddr));
     string temp(filn);
     
@@ -141,10 +139,12 @@ int main(int argc, char **argv) {
 
     long size = s.st_size;
     cout<<size<<endl;
-    
+    init_quic();
     send_file(sockfd,temp.c_str(),size,serveraddr,sizeof(serveraddr));
     
+    while(1){
 
+    }
 
     /* get a message from the user */
     // bzero(buf, BUFSIZE);

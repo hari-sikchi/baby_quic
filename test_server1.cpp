@@ -88,7 +88,7 @@ void read_file(int size,const char* filename,int chunks,int sock, struct sockadd
         long minm=1024;
         if(minm>size)minm=size;
 
-        int recv= apprecv( buf, 1024,sock, clientaddr,clientlen);
+        int recv= apprecv( buf, minm  ,sock, clientaddr,clientlen);
 
       // for(int i=0;i<minm;i++){
       //   cout<<buf[i]<<" ";
@@ -96,7 +96,6 @@ void read_file(int size,const char* filename,int chunks,int sock, struct sockadd
       cout<<endl;
 
         // cout<<"Bytes received:"<<recv<<endl;
-        cout<<"Received: "<<recv<<endl;
 
 
         int write_size=min(1024,size);
@@ -107,6 +106,7 @@ void read_file(int size,const char* filename,int chunks,int sock, struct sockadd
         
     } 
 
+    cout<<"Close file"<<endl;
   fclose(file);
 
   
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   //cin>>location;
    char *loc="/home/harshit/Documents/networks/baby_quic/";
    string location(loc);
-   filename="test1.png";
+   filename="test.ppt";
     string temp(filename);
     location=location+temp;
  
@@ -189,9 +189,9 @@ int main(int argc, char **argv) {
     chunks=2;
  
     cout<<"Copying to : "<<location<<endl;
-
+    init_quic();
     //char * filename_new="axes_recv.png";
-    read_file(50990,location.c_str(),chunks,sockfd,clientaddr,clientlen);
+    read_file(9597952,location.c_str(),chunks,sockfd,clientaddr,clientlen);
 
   // }
 }

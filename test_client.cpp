@@ -37,7 +37,8 @@ int main(int argc, char **argv) {
 	  (char *)&serveraddrt.sin_addr.s_addr, server->h_length);
     serveraddrt.sin_port = htons(portno);
 
-    init_quic();
+ init_quic();
+
     
 while (1) {
 
@@ -47,10 +48,10 @@ while (1) {
     	data[i]='A';
     }
     data[30000-1]='G';
-    data[30000-2]='G';
-    data[30000-3]='G';
-    data[30000-4]='G';
-    data[30000-5]='G';
+    data[30000-2]='F';
+    data[30000-3]='E';
+    data[30000-4]='D';
+    data[30000-5]='C';
     
     data[30000-6]='B';
     //memset(data,0,sizeof(data));

@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
    */
   clientlen = sizeof(clientaddr);
   init_quic();
+
   while (1) {
 
     char recv_buf[30000];

@@ -42,8 +42,8 @@ extern int acknowledgement_changed;
 extern int dup_ack;
 extern int window_size;
 extern int ssthresh;
-extern int sock,serverlen;
-extern struct sockaddr_in serveraddr;
+extern int sock,serverlen,clientlen;
+extern struct sockaddr_in serveraddr,clientaddr;
 extern char* data;
 extern int len;
 extern int exp_ack;
@@ -51,6 +51,8 @@ extern int recv_len;
 extern char *recv_data;
 extern sem_t mtx1,mtx2,mtx3,mtx4,mtx5;
 
+
+void init_quic();
 void error(char *msg);
 void timeout_sig(int sig);
 void *sendbuffer_handler(void *arg);
@@ -62,7 +64,7 @@ void recvbuffer_handler(char* packet_recv);
 void* parse_packets(void* arg);
 void* acquire_data(void* arg);
 void clear( std::queue<char> &q );
-int apprecv(char* datat,int lent, int sockfd, struct sockaddr_in serveraddrt,int serverlent);
+int apprecv(char* datat,int lent, int sockfd, struct sockaddr_in &clientaddrt,int &clientlent);
 
 
 
